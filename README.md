@@ -1,2 +1,2 @@
-# cnlc2026
-something
+# BussinesSoar
+Where bussiness seeds not only sprout, but take off ™
