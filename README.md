@@ -1,2 +1,2 @@
-# BussinesSoar
-Where bussiness seeds not only sprout, but take off ™
+# BusinesSoar
+Where business seeds not only sprout, but take off ™
