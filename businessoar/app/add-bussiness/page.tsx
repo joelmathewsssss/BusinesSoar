@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 
 type Category = {
@@ -67,8 +68,15 @@ export default function AddBussinessPage() {
 
   return (
     <main className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Add Business</h1>
-
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Add Business</h1>
+        <Link
+          href="/"
+          className="inline-flex items-center rounded bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+        >
+          Back to Main Page
+        </Link>
+      </div>
       <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
         <div className="space-y-1">
           <label className="block text-sm font-medium" htmlFor="name">
