@@ -26,45 +26,45 @@ export default function AddBusinessPage() {
     let active = true
 
     const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession()
+      const { data: { session } } = await supabase.auth.getSession()
 
       if (!active) return
 
-      if (error || !data.session) {
+      if (!session) {
         router.replace('/login?redirect=/add-business')
         return
       }
 
       setCheckingAuth(false)
+      
+      const loadCategories = async () => {
+        const { data, error } = await supabase
+          .from('categories')
+          .select('id, name')
+          .order('name')
+
+        if (error) {
+          setError(error.message)
+          return
+        }
+
+        setCategories((data || []) as Category[])
+      }
+
+      loadCategories()
     }
 
     checkSession()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session && active) {
         router.replace('/login?redirect=/add-business')
       }
     })
 
-    const loadCategories = async () => {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('id, name')
-        .order('name')
-
-      if (error) {
-        setError(error.message)
-        return
-      }
-
-      setCategories((data || []) as Category[])
-    }
-
-    loadCategories()
-
     return () => {
       active = false
-      authListener?.subscription.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [router])
 
