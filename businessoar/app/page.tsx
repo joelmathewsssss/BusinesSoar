@@ -1,5 +1,8 @@
 // app/page.tsx
+import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
+
+export const dynamic = 'force-dynamic'
 
 // TypeScript types (optional but helpful)
 type Business = {
@@ -21,7 +24,7 @@ export default async function HomePage() {
       name,
       description,
       category:category_id(name),
-      reviews!inner(rating)
+      reviews(rating)
     `)
 
   if (error) {
@@ -38,7 +41,15 @@ export default async function HomePage() {
 
   return (
     <main className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Local Businesses</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Local Businesses</h1>
+        <Link
+          href="/add-bussiness"
+          className="inline-flex items-center rounded bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+        >
+          Add a Business
+        </Link>
+      </div>
       <ul className="space-y-4">
         {businessesWithRating.map((b) => (
           <li key={b.id} className="border p-4 rounded shadow-sm">
