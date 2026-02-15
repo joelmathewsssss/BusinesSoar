@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -9,7 +10,7 @@ type Category = {
   name: string
 }
 
-export default function AddBussinessPage() {
+export default function AddBusinessPage() {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [address, setAddress] = useState('')
@@ -18,8 +19,33 @@ export default function AddBussinessPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
+    let active = true
+
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (!active) return
+
+      if (error || !data.session) {
+        router.replace('/login?redirect=/add-business')
+        return
+      }
+
+      setCheckingAuth(false)
+    }
+
+    checkSession()
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace('/login?redirect=/add-business')
+      }
+    })
+
     const loadCategories = async () => {
       const { data, error } = await supabase
         .from('categories')
@@ -35,7 +61,12 @@ export default function AddBussinessPage() {
     }
 
     loadCategories()
-  }, [])
+
+    return () => {
+      active = false
+      authListener?.subscription.unsubscribe()
+    }
+  }, [router])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -68,6 +99,10 @@ export default function AddBussinessPage() {
 
   return (
     <main className="p-8">
+      {checkingAuth ? (
+        <p>Checking session...</p>
+      ) : (
+        <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Add Business</h1>
         <Link
@@ -157,6 +192,8 @@ export default function AddBussinessPage() {
           {loading ? 'Saving...' : 'Save Business'}
         </button>
       </form>
+        </>
+      )}
     </main>
   )
 }
