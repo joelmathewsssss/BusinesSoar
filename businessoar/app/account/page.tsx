@@ -56,8 +56,10 @@ export default function AccountPage() {
         .order('created_at', { ascending: false })
 
       if (error) {
-        setError(error.message)
+        console.error('Error fetching businesses:', error)
+        setError(`Error: ${error.message}`)
       } else {
+        console.log('Fetched businesses:', data)
         setBusinesses((data || []) as Business[])
       }
 
