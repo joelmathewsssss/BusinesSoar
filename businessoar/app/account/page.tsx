@@ -9,9 +9,7 @@ type Business = {
   id: string
   name: string
   description: string
-  category: {
-    name: string
-  }
+  category: { name: string } | { name: string }[] | null
 }
 
 type User = {
@@ -142,7 +140,7 @@ export default function AccountPage() {
                     <h3 className="text-lg font-semibold">{b.name}</h3>
                     <p className="text-gray-700">{b.description}</p>
                     <p className="text-sm text-gray-500">
-                      Category: {b.category?.name || 'N/A'}
+                      Category: {Array.isArray(b.category) ? b.category[0]?.name || 'N/A' : b.category?.name || 'N/A'}
                     </p>
                   </li>
                 ))}
