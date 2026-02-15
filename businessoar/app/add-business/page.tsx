@@ -20,6 +20,7 @@ export default function AddBusinessPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function AddBusinessPage() {
         return
       }
 
+      setUserId(session.user.id)
       setCheckingAuth(false)
       
       const loadCategories = async () => {
@@ -81,6 +83,7 @@ export default function AddBusinessPage() {
         description,
         address,
         category_id: categoryId,
+        user_id: userId,
       })
 
     if (error) {

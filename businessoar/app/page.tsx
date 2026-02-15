@@ -43,12 +43,20 @@ export default async function HomePage() {
     <main className="p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Local Businesses</h1>
-        <Link
-          href="/add-business"
-          className="inline-flex items-center rounded bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
-        >
-          Add a Business
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/account"
+            className="inline-flex items-center rounded bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-400"
+          >
+            Account
+          </Link>
+          <Link
+            href="/add-business"
+            className="inline-flex items-center rounded bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+          >
+            Add a Business
+          </Link>
+        </div>
       </div>
       <ul className="space-y-4">
         {businessesWithRating.map((b) => (
