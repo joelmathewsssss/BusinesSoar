@@ -1,6 +1,8 @@
 // app/page.tsx
 import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
+import BusinessMap from '../components/BusinessMap'
+import ThemeToggle from '../components/ThemeToggle'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +11,8 @@ type Business = {
   id: string
   name: string
   description: string
+  latitude: number | null
+  longitude: number | null
   category: {
     name: string
   }
@@ -16,13 +20,15 @@ type Business = {
 }
 
 export default async function HomePage() {
-  // Fetch businesses with category name and average rating
+  // Fetch businesses with category name, location, and average rating
   const { data: businesses, error } = await supabase
     .from('businesses')
     .select(`
       id,
       name,
       description,
+      latitude,
+      longitude,
       category:category_id(name),
       reviews(rating)
     `)
@@ -39,31 +45,48 @@ export default async function HomePage() {
     return { ...b, avg_rating }
   })
 
+  // Filter businesses with valid coordinates for the map
+  const businessesWithLocation = businessesWithRating.filter(
+    (b) => b.latitude !== null && b.longitude !== null
+  ) as (Business & { latitude: number; longitude: number })[]
+
   return (
     <main className="p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Local Businesses</h1>
+        <ThemeToggle />
+        <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">Local Businesses</h1>
         <div className="flex gap-2">
           <Link
             href="/account"
-            className="inline-flex items-center rounded bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-400"
+            className="inline-flex items-center rounded bg-emerald-200 dark:bg-emerald-800 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-300 dark:hover:bg-emerald-700"
           >
             Account
           </Link>
           <Link
             href="/add-business"
-            className="inline-flex items-center rounded bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+            className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600"
           >
             Add a Business
           </Link>
         </div>
       </div>
+
+      {/* Map showing businesses with location data */}
+      {businessesWithLocation.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-3 text-emerald-800 dark:text-emerald-100">Business Locations</h2>
+          <BusinessMap businesses={businessesWithLocation} />
+        </div>
+      )}
+
+      {/* Business list */}
+      <h2 className="text-xl font-semibold mb-3 text-emerald-800 dark:text-emerald-100">All Businesses</h2>
       <ul className="space-y-4">
         {businessesWithRating.map((b) => (
-          <li key={b.id} className="border p-4 rounded shadow-sm">
-            <h2 className="text-xl font-semibold">{b.name}</h2>
-            <p className="text-gray-700">{b.description}</p>
-            <p className="text-gray-500">
+          <li key={b.id} className="border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950">
+            <h2 className="text-xl font-semibold text-emerald-900 dark:text-emerald-50">{b.name}</h2>
+            <p className="text-emerald-700 dark:text-emerald-300">{b.description}</p>
+            <p className="text-emerald-600 dark:text-emerald-400">
               Category: {b.category?.name || 'N/A'} | Rating: {b.avg_rating ? b.avg_rating.toFixed(1) : 'No reviews yet'}
             </p>
           </li>
