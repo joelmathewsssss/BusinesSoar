@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useState } from 'react'
-import { GoogleMap, Marker, InfoWindow, useLoadScript } from '@react-google-maps/api'
+import { useCallback, useState, useRef, useEffect } from 'react'
+import { GoogleMap, InfoWindow, useLoadScript } from '@react-google-maps/api'
 import Link from 'next/link'
 
 interface Business {
@@ -26,13 +26,76 @@ const defaultCenter = {
 }
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+const googleMapsMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ''
 
 export default function BusinessMap({ businesses }: BusinessMapProps) {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey,
+    libraries: ['marker'],
   })
 
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
+
+  // Handle map load and initialize markers
+  const handleMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      mapRef.current = map
+
+      // Clear existing markers
+      markersRef.current.forEach((marker) => {
+        marker.map = null
+      })
+      markersRef.current = []
+
+      // Create advanced markers
+      businesses.forEach((business) => {
+        const advancedMarker = new (window as any).google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: {
+            lat: business.latitude,
+            lng: business.longitude,
+          },
+        })
+
+        advancedMarker.addListener('click', () => {
+          setSelectedBusiness(business)
+        })
+
+        markersRef.current.push(advancedMarker)
+      })
+    },
+    [businesses]
+  )
+
+  // Update markers when businesses change
+  useEffect(() => {
+    if (!mapRef.current) return
+
+    // Clear existing markers
+    markersRef.current.forEach((marker) => {
+      marker.map = null
+    })
+    markersRef.current = []
+
+    // Create new markers
+    businesses.forEach((business) => {
+      const advancedMarker = new (window as any).google.maps.marker.AdvancedMarkerElement({
+        map: mapRef.current,
+        position: {
+          lat: business.latitude,
+          lng: business.longitude,
+        },
+      })
+
+      advancedMarker.addListener('click', () => {
+        setSelectedBusiness(business)
+      })
+
+      markersRef.current.push(advancedMarker)
+    })
+  }, [businesses])
 
   // Calculate map center based on businesses
   const getMapCenter = useCallback(() => {
@@ -79,23 +142,14 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
       mapContainerStyle={mapContainerStyle}
       zoom={getZoomLevel()}
       center={getMapCenter()}
+      onLoad={handleMapLoad}
       options={{
+        mapId: googleMapsMapId,
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: true,
       }}
     >
-      {businesses.map((business) => (
-        <Marker
-          key={business.id}
-          position={{
-            lat: business.latitude,
-            lng: business.longitude,
-          }}
-          onClick={() => setSelectedBusiness(business)}
-        />
-      ))}
-
       {selectedBusiness && (
         <InfoWindow
           position={{
