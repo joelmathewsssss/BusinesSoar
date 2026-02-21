@@ -28,10 +28,13 @@ const defaultCenter = {
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 const googleMapsMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ''
 
+// Static libraries array - prevent unnecessary reloads
+const libraries: ('marker')[] = ['marker']
+
 export default function BusinessMap({ businesses }: BusinessMapProps) {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey,
-    libraries: ['marker'],
+    libraries,
   })
 
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
@@ -59,7 +62,7 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
           },
         })
 
-        advancedMarker.addListener('click', () => {
+        advancedMarker.addListener('gmp-click', () => {
           setSelectedBusiness(business)
         })
 
@@ -89,7 +92,7 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
         },
       })
 
-      advancedMarker.addListener('click', () => {
+      advancedMarker.addListener('gmp-click', () => {
         setSelectedBusiness(business)
       })
 
