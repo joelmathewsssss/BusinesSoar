@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 import GoogleAddressInput from '../../components/GoogleAddressInput'
 import GoogleMapsLoader from '../../components/GoogleMapsLoader'
+import ImageUpload from '../../components/ImageUpload'
 
 type Category = {
   id: string
@@ -27,6 +28,8 @@ export default function AddBusinessPage() {
   const [longitude, setLongitude] = useState<number | null>(null)
   const [placeId, setPlaceId] = useState<string | null>(null)
   const [categoryId, setCategoryId] = useState('')
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [imagePublicUrl, setImagePublicUrl] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -97,6 +100,7 @@ export default function AddBusinessPage() {
         latitude,
         longitude,
         place_id: placeId,
+        image_url: imagePublicUrl,
         category_id: categoryId,
         user_id: userId,
       })
@@ -114,6 +118,8 @@ export default function AddBusinessPage() {
     setLatitude(null)
     setLongitude(null)
     setPlaceId(null)
+    setImageUrl(null)
+    setImagePublicUrl(null)
     setCategoryId('')
     setLoading(false)
   }
@@ -178,6 +184,19 @@ export default function AddBusinessPage() {
               setPlaceId(placeData.placeId)
             }}
             placeholder="Search for your business address..."
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-emerald-800 dark:text-emerald-100">
+            Business Image
+          </label>
+          <ImageUpload
+            onUploadComplete={(imagePath, publicUrl) => {
+              setImageUrl(imagePath)
+              setImagePublicUrl(publicUrl)
+            }}
+            onError={(error) => setError(error)}
           />
         </div>
 

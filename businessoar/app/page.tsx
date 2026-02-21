@@ -1,5 +1,6 @@
 // app/page.tsx
 import Link from 'next/link'
+import Image from 'next/image'
 import { supabase } from '../lib/supabaseClient'
 import BusinessMapWrapper from '../components/BusinessMapWrapper'
 import ThemeToggle from '../components/ThemeToggle'
@@ -11,6 +12,7 @@ type Business = {
   id: string
   name: string
   description: string
+  image_url: string | null
   latitude: number | null
   longitude: number | null
   category: {
@@ -27,6 +29,7 @@ export default async function HomePage() {
       id,
       name,
       description,
+      image_url,
       latitude,
       longitude,
       category:category_id(name),
@@ -83,12 +86,26 @@ export default async function HomePage() {
       <h2 className="text-xl font-semibold mb-3 text-emerald-800 dark:text-emerald-100">All Businesses</h2>
       <ul className="space-y-4">
         {businessesWithRating.map((b) => (
-          <li key={b.id} className="border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950">
-            <h2 className="text-xl font-semibold text-emerald-900 dark:text-emerald-50">{b.name}</h2>
-            <p className="text-emerald-700 dark:text-emerald-300">{b.description}</p>
-            <p className="text-emerald-600 dark:text-emerald-400">
-              Category: {b.category?.name || 'N/A'} | Rating: {b.avg_rating ? b.avg_rating.toFixed(1) : 'No reviews yet'}
-            </p>
+          <li key={b.id} className="border border-emerald-300 dark:border-emerald-700 rounded shadow-sm bg-white dark:bg-emerald-950 overflow-hidden">
+            <div className="flex gap-4 p-4">
+              {b.image_url && (
+                <div className="relative w-40 h-40 flex-shrink-0 rounded overflow-hidden">
+                  <Image
+                    src={b.image_url}
+                    alt={b.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-emerald-900 dark:text-emerald-50">{b.name}</h2>
+                <p className="text-emerald-700 dark:text-emerald-300 line-clamp-2">{b.description}</p>
+                <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-2">
+                  Category: {b.category?.name || 'N/A'} | Rating: {b.avg_rating ? b.avg_rating.toFixed(1) : 'No reviews yet'}
+                </p>
+              </div>
+            </div>
           </li>
         ))}
       </ul>
