@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState, useRef, useEffect } from 'react'
-import { GoogleMap, InfoWindow, useLoadScript } from '@react-google-maps/api'
+import { GoogleMap, InfoWindow } from '@react-google-maps/api'
 import Link from 'next/link'
 
 interface Business {
@@ -28,15 +28,7 @@ const defaultCenter = {
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 const googleMapsMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || ''
 
-// Static libraries array - prevent unnecessary reloads
-const libraries: ('marker')[] = ['marker']
-
 export default function BusinessMap({ businesses }: BusinessMapProps) {
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey,
-    libraries,
-  })
-
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
@@ -131,14 +123,6 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
     if (maxDiff > 0.1) return 12
     return 14
   }, [businesses])
-
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-[500px] bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center rounded border border-emerald-200 dark:border-emerald-700">
-        <p className="text-emerald-600 dark:text-emerald-400">Loading map...</p>
-      </div>
-    )
-  }
 
   return (
     <GoogleMap

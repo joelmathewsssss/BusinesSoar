@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useEffect, useState } from 'react'
-import { useLoadScript, StandaloneSearchBox } from '@react-google-maps/api'
+import { StandaloneSearchBox } from '@react-google-maps/api'
 
 interface PlaceData {
   formattedAddress: string
@@ -25,11 +25,6 @@ export default function GoogleAddressInput({
   placeholder = 'Enter your address',
   className = '',
 }: GoogleAddressInputProps) {
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey,
-    libraries: ['places'],
-  })
-
   const searchBoxRef = useRef<google.maps.places.SearchBox | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [inputValue, setInputValue] = useState(value)
@@ -64,16 +59,6 @@ export default function GoogleAddressInput({
     setInputValue(e.target.value)
   }
 
-  if (!isLoaded) {
-    return (
-      <input
-        type="text"
-        placeholder={placeholder}
-        disabled
-        className={`w-full rounded border border-emerald-300 dark:border-emerald-700 px-3 py-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-50 ${className}`}
-      />
-    )
-  }
 
   return (
     <StandaloneSearchBox

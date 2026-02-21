@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabaseClient'
 import GoogleAddressInput from '../../components/GoogleAddressInput'
+import GoogleMapsLoader from '../../components/GoogleMapsLoader'
 
 type Category = {
   id: string
@@ -118,11 +119,12 @@ export default function AddBusinessPage() {
   }
 
   return (
-    <main className="p-8">
-      {checkingAuth ? (
-        <p>Checking session...</p>
-      ) : (
-        <>
+    <GoogleMapsLoader>
+      <main className="p-8">
+        {checkingAuth ? (
+          <p>Checking session...</p>
+        ) : (
+          <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">Add Business</h1>
         <Link
@@ -216,5 +218,6 @@ export default function AddBusinessPage() {
         </>
       )}
     </main>
+    </GoogleMapsLoader>
   )
 }

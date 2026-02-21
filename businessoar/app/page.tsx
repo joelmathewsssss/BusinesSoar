@@ -1,7 +1,7 @@
 // app/page.tsx
 import Link from 'next/link'
 import { supabase } from '../lib/supabaseClient'
-import BusinessMap from '../components/BusinessMap'
+import BusinessMapWrapper from '../components/BusinessMapWrapper'
 import ThemeToggle from '../components/ThemeToggle'
 
 export const dynamic = 'force-dynamic'
@@ -75,7 +75,7 @@ export default async function HomePage() {
       {businessesWithLocation.length > 0 && (
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-emerald-800 dark:text-emerald-100">Business Locations</h2>
-          <BusinessMap businesses={businessesWithLocation} />
+          <BusinessMapWrapper businesses={businessesWithLocation} />
         </div>
       )}
 
