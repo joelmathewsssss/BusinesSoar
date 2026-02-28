@@ -86,10 +86,14 @@ export default function BusinessPage() {
     return null
   }
 
-  const canDeleteReview = (review: Review) => {
+  const isReviewOwner = (review: Review) => {
     if (!currentUserId) return false
     const owner = getReviewOwner(review)
     return Boolean(owner && owner.value === currentUserId)
+  }
+
+  const canDeleteReview = (review: Review) => {
+    return isOwner || isReviewOwner(review)
   }
 
   const formatReviewDate = (dateValue?: string | null) => {
@@ -257,7 +261,10 @@ export default function BusinessPage() {
     if (!business || !currentUserId || deletingReviewId) return
 
     const owner = getReviewOwner(review)
-    if (!owner || owner.value !== currentUserId) {
+    const userIsBusinessOwner = currentUserId === business.user_id
+    const userIsReviewOwner = Boolean(owner && owner.value === currentUserId)
+
+    if (!userIsBusinessOwner && !userIsReviewOwner) {
       setReviewError('You can only delete your own review.')
       return
     }
@@ -265,11 +272,22 @@ export default function BusinessPage() {
     setDeletingReviewId(review.id)
     setReviewError(null)
 
-    const { error: deleteError } = await supabase
-      .from('reviews')
-      .delete()
-      .eq('id', review.id)
-      .eq(owner.field, currentUserId)
+    let deleteError: { message: string } | null = null
+
+    if (userIsBusinessOwner) {
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', review.id)
+      deleteError = error
+    } else if (owner) {
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', review.id)
+        .eq(owner.field, currentUserId)
+      deleteError = error
+    }
 
     if (deleteError) {
       setReviewError(deleteError.message)

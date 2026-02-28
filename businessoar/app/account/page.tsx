@@ -17,10 +17,20 @@ type User = {
   email: string
 }
 
+type Review = {
+  id: string
+  rating: number
+  comment: string | null
+  created_at?: string | null
+  business_id?: string | null
+  business_name?: string
+}
+
 export default function AccountPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [businesses, setBusinesses] = useState<Business[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
@@ -61,6 +71,50 @@ export default function AccountPage() {
         console.log('Fetched businesses:', data)
         setBusinesses((data || []) as Business[])
       }
+
+      const reviewSelect = 'id, rating, comment, created_at, business_id'
+      const reviewAttempts = [
+        { reviewerField: 'user_id', query: `user_id.eq.${session.user.id}` },
+        { reviewerField: 'reviewer_id', query: `reviewer_id.eq.${session.user.id}` },
+        { reviewerField: 'author_id', query: `author_id.eq.${session.user.id}` },
+        { reviewerField: 'profile_id', query: `profile_id.eq.${session.user.id}` },
+      ]
+
+      let userReviews: Review[] = []
+
+      for (const attempt of reviewAttempts) {
+        const { data: reviewData, error: reviewError } = await supabase
+          .from('reviews')
+          .select(reviewSelect)
+          .or(attempt.query)
+
+        if (!reviewError) {
+          userReviews = (reviewData || []) as Review[]
+          break
+        }
+      }
+
+      if (userReviews.length > 0) {
+        const businessIds = userReviews
+          .map((review) => review.business_id)
+          .filter((value): value is string => Boolean(value))
+
+        if (businessIds.length > 0) {
+          const { data: reviewBusinesses } = await supabase
+            .from('businesses')
+            .select('id, name')
+            .in('id', businessIds)
+
+          const nameById = new Map((reviewBusinesses || []).map((item: any) => [item.id, item.name]))
+
+          userReviews = userReviews.map((review) => ({
+            ...review,
+            business_name: review.business_id ? nameById.get(review.business_id) || 'Business' : 'Business',
+          }))
+        }
+      }
+
+      setReviews(userReviews)
 
       setLoading(false)
     }
@@ -143,6 +197,29 @@ export default function AccountPage() {
                     <p className="text-sm text-emerald-600 dark:text-emerald-400">
                       Category: {Array.isArray(b.category) ? b.category[0]?.name || 'N/A' : b.category?.name || 'N/A'}
                     </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Reviews */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-emerald-900 dark:text-emerald-50">Your Reviews</h2>
+            {reviews.length === 0 ? (
+              <p className="text-emerald-700 dark:text-emerald-300">You haven't added any reviews yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {reviews.map((review) => (
+                  <li key={review.id} className="border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400">{review.business_name || 'Business'}</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        {review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
+                      </p>
+                    </div>
+                    <p className="text-emerald-900 dark:text-emerald-50 font-semibold mb-1">{'★'.repeat(review.rating)}</p>
+                    {review.comment && <p className="text-emerald-700 dark:text-emerald-300">{review.comment}</p>}
                   </li>
                 ))}
               </ul>
