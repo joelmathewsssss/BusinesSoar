@@ -36,10 +36,7 @@ interface Review {
 interface Deal {
   id: string
   title?: string | null
-  name?: string | null
-  description?: string | null
-  price?: number | null
-  discount?: number | null
+  details?: string | null
   expires_at?: string | null
 }
 
@@ -66,11 +63,22 @@ export default function BusinessPage() {
   const [savingBusiness, setSavingBusiness] = useState(false)
   const [businessFormError, setBusinessFormError] = useState<string | null>(null)
   const [businessFormSuccess, setBusinessFormSuccess] = useState<string | null>(null)
-  const [dealName, setDealName] = useState('')
-  const [dealDescription, setDealDescription] = useState('')
+  const [deletingBusiness, setDeletingBusiness] = useState(false)
+  const [dealTitle, setDealTitle] = useState('')
+  const [dealDetails, setDealDetails] = useState('')
+  const [dealExpiresAt, setDealExpiresAt] = useState('')
   const [addingDeal, setAddingDeal] = useState(false)
   const [dealFormError, setDealFormError] = useState<string | null>(null)
   const [dealFormSuccess, setDealFormSuccess] = useState<string | null>(null)
+  const [editingDealId, setEditingDealId] = useState<string | null>(null)
+  const [editDealTitle, setEditDealTitle] = useState('')
+  const [editDealDetails, setEditDealDetails] = useState('')
+  const [editDealExpiresAt, setEditDealExpiresAt] = useState('')
+  const [savingDeal, setSavingDeal] = useState(false)
+  const [deletingDealId, setDeletingDealId] = useState<string | null>(null)
+  const [isFavorited, setIsFavorited] = useState(false)
+  const [checkingFavorite, setCheckingFavorite] = useState(false)
+  const [togglingFavorite, setTogglingFavorite] = useState(false)
 
   const calculateAverageRating = (reviews: Review[]) => {
     if (!reviews || reviews.length === 0) return null
@@ -92,8 +100,13 @@ export default function BusinessPage() {
     return Boolean(owner && owner.value === currentUserId)
   }
 
+  const isBusinessOwner = () => {
+    if (!business || !currentUserId) return false
+    return currentUserId === business.user_id
+  }
+
   const canDeleteReview = (review: Review) => {
-    return isOwner || isReviewOwner(review)
+    return isBusinessOwner() || isReviewOwner(review)
   }
 
   const formatReviewDate = (dateValue?: string | null) => {
@@ -117,13 +130,73 @@ export default function BusinessPage() {
     return reviewsData as Review[]
   }
 
+  const checkFavoriteStatus = async (userId: string, targetBusinessId: string) => {
+    setCheckingFavorite(true)
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('business_id', targetBusinessId)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error checking favorite status:', error)
+    }
+
+    setIsFavorited(Boolean(data))
+    setCheckingFavorite(false)
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!currentUserId || !businessId || togglingFavorite) return
+
+    setTogglingFavorite(true)
+
+    if (isFavorited) {
+      // Remove from favorites
+      const { error } = await supabase
+        .from('favorites')
+        .delete()
+        .eq('user_id', currentUserId)
+        .eq('business_id', businessId)
+
+      if (error) {
+        console.error('Error removing favorite:', error)
+      } else {
+        setIsFavorited(false)
+      }
+    } else {
+      // Add to favorites
+      const { error } = await supabase
+        .from('favorites')
+        .insert({
+          user_id: currentUserId,
+          business_id: businessId,
+        })
+
+      if (error) {
+        console.error('Error adding favorite:', error)
+      } else {
+        setIsFavorited(true)
+      }
+    }
+
+    setTogglingFavorite(false)
+  }
+
   useEffect(() => {
     if (!businessId) return
 
     const fetchBusiness = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        setCurrentUserId(session?.user?.id ?? null)
+        const userId = session?.user?.id ?? null
+        setCurrentUserId(userId)
+
+        // Check favorite status if user is logged in
+        if (userId) {
+          await checkFavoriteStatus(userId, businessId)
+        }
 
         // Fetch the basic business data
         const { data: businessData, error: businessError } = await supabase
@@ -211,19 +284,20 @@ export default function BusinessPage() {
     }
 
     const attempts = [
-      { ...basePayload, user_id: currentUserId },
-      { ...basePayload, reviewer_id: currentUserId },
-      { ...basePayload, author_id: currentUserId },
-      { ...basePayload, profile_id: currentUserId },
-      basePayload,
+      { payload: { ...basePayload, user_id: currentUserId }, columnName: 'user_id' },
+      { payload: { ...basePayload, reviewer_id: currentUserId }, columnName: 'reviewer_id' },
+      { payload: { ...basePayload, author_id: currentUserId }, columnName: 'author_id' },
+      { payload: { ...basePayload, profile_id: currentUserId }, columnName: 'profile_id' },
     ]
 
     let submitError: { message: string } | null = null
+    let lastAttemptedColumn = ''
 
-    for (const payload of attempts) {
+    for (const attempt of attempts) {
+      lastAttemptedColumn = attempt.columnName
       const { error } = await supabase
         .from('reviews')
-        .insert(payload)
+        .insert(attempt.payload)
 
       if (!error) {
         submitError = null
@@ -234,7 +308,8 @@ export default function BusinessPage() {
     }
 
     if (submitError) {
-      setReviewError(submitError.message)
+      const errorMsg = `Failed to add review (last tried column: ${lastAttemptedColumn}). Error: ${submitError.message}. Please check that the reviews table has one of these columns: user_id, reviewer_id, author_id, or profile_id`
+      setReviewError(errorMsg)
       setSubmittingReview(false)
       return
     }
@@ -348,15 +423,78 @@ export default function BusinessPage() {
     setSavingBusiness(false)
   }
 
+  const handleDeleteBusiness = async () => {
+    if (!business || !currentUserId || currentUserId !== business.user_id || deletingBusiness) return
+
+    if (!window.confirm('Are you sure you want to delete this business? This cannot be undone.')) {
+      return
+    }
+
+    setDeletingBusiness(true)
+    setBusinessFormError(null)
+
+    // First, delete all reviews for this business (with user_id constraint)
+    const { error: deleteReviewsError } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('business_id', business.id)
+
+    if (deleteReviewsError) {
+      setBusinessFormError(`Failed to delete reviews: ${deleteReviewsError.message}`)
+      setDeletingBusiness(false)
+      return
+    }
+
+    // Then, delete all deals for this business
+    const { error: deleteDealsError } = await supabase
+      .from('deals')
+      .delete()
+      .eq('business_id', business.id)
+
+    if (deleteDealsError) {
+      setBusinessFormError(`Failed to delete deals: ${deleteDealsError.message}`)
+      setDeletingBusiness(false)
+      return
+    }
+
+    // Verify deals were actually deleted before proceeding
+    const { data: remainingDeals } = await supabase
+      .from('deals')
+      .select('id')
+      .eq('business_id', business.id)
+
+    if (remainingDeals && remainingDeals.length > 0) {
+      setBusinessFormError(`Could not delete all deals (${remainingDeals.length} remaining). Please try again.`)
+      setDeletingBusiness(false)
+      return
+    }
+
+    // Finally, delete the business itself
+    const { error: deleteError } = await supabase
+      .from('businesses')
+      .delete()
+      .eq('id', business.id)
+      .eq('user_id', currentUserId)
+
+    if (deleteError) {
+      setBusinessFormError(deleteError.message)
+      setDeletingBusiness(false)
+      return
+    }
+
+    // Redirect to account page after successful deletion
+    window.location.href = '/account'
+  }
+
   const handleAddDeal = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!business || !currentUserId || currentUserId !== business.user_id || addingDeal) return
 
-    const trimmedName = dealName.trim()
-    const trimmedDescription = dealDescription.trim()
+    const trimmedTitle = dealTitle.trim()
+    const trimmedDetails = dealDetails.trim()
 
-    if (!trimmedName) {
-      setDealFormError('Deal name is required')
+    if (!trimmedTitle) {
+      setDealFormError('Deal title is required')
       return
     }
 
@@ -364,47 +502,108 @@ export default function BusinessPage() {
     setDealFormError(null)
     setDealFormSuccess(null)
 
-    const tryByName = await supabase
+    const { error, data } = await supabase
       .from('deals')
       .insert({
         business_id: business.id,
-        name: trimmedName,
-        description: trimmedDescription || null,
+        title: trimmedTitle,
+        details: trimmedDetails || null,
+        expires_at: dealExpiresAt || null,
       })
       .select('*')
       .single()
 
-    let createdDeal = tryByName.data as Deal | null
-    let createError = tryByName.error
-
-    if (createError) {
-      const tryByTitle = await supabase
-        .from('deals')
-        .insert({
-          business_id: business.id,
-          title: trimmedName,
-          description: trimmedDescription || null,
-        })
-        .select('*')
-        .single()
-
-      createdDeal = tryByTitle.data as Deal | null
-      createError = tryByTitle.error
-    }
-
-    if (createError) {
-      setDealFormError(createError.message)
+    if (error) {
+      setDealFormError(error.message)
       setAddingDeal(false)
       return
     }
 
-    if (createdDeal) {
-      setDeals((currentDeals) => [createdDeal as Deal, ...currentDeals])
+    if (data) {
+      setDeals((currentDeals) => [data as Deal, ...currentDeals])
     }
-    setDealName('')
-    setDealDescription('')
+    setDealTitle('')
+    setDealDetails('')
+    setDealExpiresAt('')
     setDealFormSuccess('Deal added successfully.')
     setAddingDeal(false)
+  }
+
+  const handleEditDeal = (deal: Deal) => {
+    setEditingDealId(deal.id)
+    setEditDealTitle(deal.title || '')
+    setEditDealDetails(deal.details || '')
+    setEditDealExpiresAt(deal.expires_at || '')
+    setDealFormError(null)
+  }
+
+  const handleUpdateDeal = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!business || !currentUserId || currentUserId !== business.user_id || !editingDealId || savingDeal) return
+
+    const trimmedTitle = editDealTitle.trim()
+    const trimmedDetails = editDealDetails.trim()
+
+    if (!trimmedTitle) {
+      setDealFormError('Deal title is required')
+      return
+    }
+
+    setSavingDeal(true)
+    setDealFormError(null)
+    setDealFormSuccess(null)
+
+    const { error, data } = await supabase
+      .from('deals')
+      .update({
+        title: trimmedTitle,
+        details: trimmedDetails || null,
+        expires_at: editDealExpiresAt || null,
+      })
+      .eq('id', editingDealId)
+      .select('*')
+      .single()
+
+    if (error) {
+      setDealFormError(error.message)
+      setSavingDeal(false)
+      return
+    }
+
+    if (data) {
+      setDeals((currentDeals) =>
+        currentDeals.map((deal) => (deal.id === editingDealId ? (data as Deal) : deal))
+      )
+    }
+    setEditingDealId(null)
+    setDealFormSuccess('Deal updated successfully.')
+    setSavingDeal(false)
+  }
+
+  const handleDeleteDeal = async (dealId: string) => {
+    if (!business || !currentUserId || currentUserId !== business.user_id || deletingDealId) return
+
+    if (!window.confirm('Are you sure you want to delete this deal?')) {
+      return
+    }
+
+    setDeletingDealId(dealId)
+    setDealFormError(null)
+
+    const { error: deleteError } = await supabase
+      .from('deals')
+      .delete()
+      .eq('id', dealId)
+
+    if (deleteError) {
+      setDealFormError(deleteError.message)
+      setDeletingDealId(null)
+      return
+    }
+
+    setDeals((currentDeals) => currentDeals.filter((deal) => deal.id !== dealId))
+    setDeletingDealId(null)
+    setDealFormSuccess('Deal deleted successfully.')
   }
 
   if (loading) {
@@ -462,14 +661,27 @@ export default function BusinessPage() {
         {/* Business Details */}
         <div className="p-6">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold text-emerald-900 dark:text-emerald-50 mb-2">
-              {business.name}
-            </h1>
-            {business.category && (
-              <p className="text-emerald-600 dark:text-emerald-400 text-lg">
-                {business.category.name}
-              </p>
+          <div className="mb-6 flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-emerald-900 dark:text-emerald-50 mb-2">
+                {business.name}
+              </h1>
+              {business.category && (
+                <p className="text-emerald-600 dark:text-emerald-400 text-lg">
+                  {business.category.name}
+                </p>
+              )}
+            </div>
+            {currentUserId && currentUserId !== business.user_id && (
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                disabled={togglingFavorite || checkingFavorite}
+                className="ml-4 flex-shrink-0 text-4xl hover:scale-110 transition-transform disabled:opacity-60"
+                title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                {isFavorited ? '❤️' : '🤍'}
+              </button>
             )}
           </div>
 
@@ -605,13 +817,23 @@ export default function BusinessPage() {
                   {businessFormError && <p className="text-sm text-red-600 dark:text-red-400">{businessFormError}</p>}
                   {businessFormSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{businessFormSuccess}</p>}
 
-                  <button
-                    type="submit"
-                    disabled={savingBusiness}
-                    className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600 disabled:opacity-60"
-                  >
-                    {savingBusiness ? 'Saving...' : 'Save Changes'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={savingBusiness}
+                      className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600 disabled:opacity-60"
+                    >
+                      {savingBusiness ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteBusiness}
+                      disabled={deletingBusiness}
+                      className="inline-flex items-center rounded bg-red-600 dark:bg-red-700 px-4 py-2 text-sm font-semibold text-white dark:text-red-50 hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-60"
+                    >
+                      {deletingBusiness ? 'Deleting...' : 'Delete Business'}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
@@ -627,14 +849,14 @@ export default function BusinessPage() {
               <form onSubmit={handleAddDeal} className="mb-4 space-y-3 p-4 border border-emerald-300 dark:border-emerald-700 rounded">
                 <p className="text-sm font-medium text-emerald-900 dark:text-emerald-50">Add a deal</p>
                 <div>
-                  <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="deal-name">
-                    Deal Name
+                  <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="deal-title">
+                    Deal Title
                   </label>
                   <input
-                    id="deal-name"
+                    id="deal-title"
                     type="text"
-                    value={dealName}
-                    onChange={(event) => setDealName(event.target.value)}
+                    value={dealTitle}
+                    onChange={(event) => setDealTitle(event.target.value)}
                     className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
                     placeholder="e.g. 20% off lunch"
                     required
@@ -642,16 +864,29 @@ export default function BusinessPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="deal-description">
-                    Description
+                  <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="deal-details">
+                    Details
                   </label>
                   <textarea
-                    id="deal-description"
-                    value={dealDescription}
-                    onChange={(event) => setDealDescription(event.target.value)}
+                    id="deal-details"
+                    value={dealDetails}
+                    onChange={(event) => setDealDetails(event.target.value)}
                     rows={3}
                     className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
-                    placeholder="Optional details"
+                    placeholder="Describe the deal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="deal-expires">
+                    Expires At (Optional)
+                  </label>
+                  <input
+                    id="deal-expires"
+                    type="datetime-local"
+                    value={dealExpiresAt}
+                    onChange={(event) => setDealExpiresAt(event.target.value)}
+                    className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
                   />
                 </div>
 
@@ -673,21 +908,106 @@ export default function BusinessPage() {
             ) : (
               <div className="space-y-4">
                 {deals.map((deal) => (
-                  <div
-                    key={deal.id}
-                    className="p-4 border border-emerald-300 dark:border-emerald-700 rounded bg-emerald-50 dark:bg-emerald-900"
-                  >
-                    <h3 className="font-semibold text-emerald-900 dark:text-emerald-50 mb-1">
-                      {deal.title || deal.name || 'Deal'}
-                    </h3>
-                    {deal.description && (
-                      <p className="text-emerald-700 dark:text-emerald-200 mb-1">{deal.description}</p>
+                  <div key={deal.id}>
+                    {editingDealId === deal.id ? (
+                      <form onSubmit={handleUpdateDeal} className="space-y-3 p-4 border border-emerald-300 dark:border-emerald-700 rounded bg-emerald-50 dark:bg-emerald-900">
+                        <p className="text-sm font-medium text-emerald-900 dark:text-emerald-50">Edit deal</p>
+                        <div>
+                          <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="edit-deal-title">
+                            Deal Title
+                          </label>
+                          <input
+                            id="edit-deal-title"
+                            type="text"
+                            value={editDealTitle}
+                            onChange={(event) => setEditDealTitle(event.target.value)}
+                            className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="edit-deal-details">
+                            Details
+                          </label>
+                          <textarea
+                            id="edit-deal-details"
+                            value={editDealDetails}
+                            onChange={(event) => setEditDealDetails(event.target.value)}
+                            rows={3}
+                            className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="edit-deal-expires">
+                            Expires At (Optional)
+                          </label>
+                          <input
+                            id="edit-deal-expires"
+                            type="datetime-local"
+                            value={editDealExpiresAt}
+                            onChange={(event) => setEditDealExpiresAt(event.target.value)}
+                            className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
+                          />
+                        </div>
+
+                        {dealFormError && <p className="text-sm text-red-600 dark:text-red-400">{dealFormError}</p>}
+                        {dealFormSuccess && <p className="text-sm text-emerald-600 dark:text-emerald-400">{dealFormSuccess}</p>}
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="submit"
+                            disabled={savingDeal}
+                            className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600 disabled:opacity-60"
+                          >
+                            {savingDeal ? 'Saving...' : 'Save Changes'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingDealId(null)}
+                            className="inline-flex items-center rounded bg-gray-400 dark:bg-gray-600 px-4 py-2 text-sm font-semibold text-white dark:text-gray-50 hover:bg-gray-500 dark:hover:bg-gray-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="p-4 border border-emerald-300 dark:border-emerald-700 rounded bg-emerald-50 dark:bg-emerald-900">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-emerald-900 dark:text-emerald-50">
+                            {deal.title || 'Deal'}
+                          </h3>
+                          {isOwner && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleEditDeal(deal)}
+                                className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-3 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDeal(deal.id)}
+                                disabled={deletingDealId === deal.id}
+                                className="inline-flex items-center rounded bg-red-600 dark:bg-red-700 px-3 py-2 text-sm font-semibold text-white dark:text-red-50 hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-60"
+                              >
+                                {deletingDealId === deal.id ? 'Deleting...' : 'Delete'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {deal.details && (
+                          <p className="text-emerald-700 dark:text-emerald-200 mb-1">{deal.details}</p>
+                        )}
+                        {deal.expires_at && (
+                          <p className="text-sm text-emerald-600 dark:text-emerald-300">
+                            Expires: {new Date(deal.expires_at).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
                     )}
-                    <p className="text-sm text-emerald-600 dark:text-emerald-300">
-                      {deal.price != null ? `Price: $${deal.price}` : ''}
-                      {deal.price != null && deal.discount != null ? ' • ' : ''}
-                      {deal.discount != null ? `Discount: ${deal.discount}%` : ''}
-                    </p>
                   </div>
                 ))}
               </div>

@@ -12,6 +12,12 @@ type Business = {
   category: { name: string } | { name: string }[] | null
 }
 
+type Favorite = {
+  id: string
+  business_id: string
+  business_name: string
+}
+
 type User = {
   id: string
   email: string
@@ -31,6 +37,7 @@ export default function AccountPage() {
   const [user, setUser] = useState<User | null>(null)
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
+  const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [signingOut, setSigningOut] = useState(false)
@@ -116,6 +123,33 @@ export default function AccountPage() {
 
       setReviews(userReviews)
 
+      // Fetch favorites
+      const { data: favoritesData, error: favoritesError } = await supabase
+        .from('favorites')
+        .select('id, business_id')
+        .eq('user_id', session.user.id)
+
+      if (!favoritesError && favoritesData) {
+        const favBusinessIds = favoritesData.map((fav: any) => fav.business_id)
+        
+        if (favBusinessIds.length > 0) {
+          const { data: favBusinesses } = await supabase
+            .from('businesses')
+            .select('id, name')
+            .in('id', favBusinessIds)
+
+          const userFavorites: Favorite[] = (favoritesData || []).map((fav: any) => {
+            const business = (favBusinesses || []).find((b: any) => b.id === fav.business_id)
+            return {
+              id: fav.id,
+              business_id: fav.business_id,
+              business_name: business?.name || 'Business',
+            }
+          })
+          setFavorites(userFavorites)
+        }
+      }
+
       setLoading(false)
     }
 
@@ -191,12 +225,41 @@ export default function AccountPage() {
             ) : (
               <ul className="space-y-4">
                 {businesses.map((b) => (
-                  <li key={b.id} className="border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950">
-                    <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-50">{b.name}</h3>
-                    <p className="text-emerald-700 dark:text-emerald-300">{b.description}</p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                      Category: {Array.isArray(b.category) ? b.category[0]?.name || 'N/A' : b.category?.name || 'N/A'}
-                    </p>
+                  <li key={b.id}>
+                    <Link
+                      href={`/business/${b.id}`}
+                      className="block border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950 hover:bg-emerald-50 dark:hover:bg-emerald-900 transition-colors"
+                    >
+                      <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-50">{b.name}</h3>
+                      <p className="text-emerald-700 dark:text-emerald-300">{b.description}</p>
+                      <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                        Category: {Array.isArray(b.category) ? b.category[0]?.name || 'N/A' : b.category?.name || 'N/A'}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Favorites */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold text-emerald-900 dark:text-emerald-50">Your Favorites</h2>
+            {favorites.length === 0 ? (
+              <p className="text-emerald-700 dark:text-emerald-300">You haven't favorited any businesses yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {favorites.map((favorite) => (
+                  <li key={favorite.id}>
+                    <Link
+                      href={`/business/${favorite.business_id}`}
+                      className="block border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950 hover:bg-emerald-50 dark:hover:bg-emerald-900 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">❤️</span>
+                        <h3 className="text-lg font-semibold text-emerald-900 dark:text-emerald-50">{favorite.business_name}</h3>
+                      </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -211,15 +274,20 @@ export default function AccountPage() {
             ) : (
               <ul className="space-y-4">
                 {reviews.map((review) => (
-                  <li key={review.id} className="border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-emerald-600 dark:text-emerald-400">{review.business_name || 'Business'}</p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                        {review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
-                      </p>
-                    </div>
-                    <p className="text-emerald-900 dark:text-emerald-50 font-semibold mb-1">{'★'.repeat(review.rating)}</p>
-                    {review.comment && <p className="text-emerald-700 dark:text-emerald-300">{review.comment}</p>}
+                  <li key={review.id}>
+                    <Link
+                      href={`/business/${review.business_id}`}
+                      className="block border border-emerald-300 dark:border-emerald-700 p-4 rounded shadow-sm bg-white dark:bg-emerald-950 hover:bg-emerald-50 dark:hover:bg-emerald-900 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-emerald-600 dark:text-emerald-400">{review.business_name || 'Business'}</p>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                          {review.created_at ? new Date(review.created_at).toLocaleDateString() : ''}
+                        </p>
+                      </div>
+                      <p className="text-emerald-900 dark:text-emerald-50 font-semibold mb-1">{'★'.repeat(review.rating)}</p>
+                      {review.comment && <p className="text-emerald-700 dark:text-emerald-300">{review.comment}</p>}
+                    </Link>
                   </li>
                 ))}
               </ul>
