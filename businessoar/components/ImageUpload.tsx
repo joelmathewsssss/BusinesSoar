@@ -86,12 +86,11 @@ export default function ImageUpload({
         return error.message
       }
 
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('business-images')
-        .getPublicUrl(`businesses/${fileName}`)
+      // Get public URL - construct it explicitly
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/business-images/businesses/${fileName}`
 
-      onUploadComplete(data.path, publicUrlData.publicUrl)
+      onUploadComplete(data.path, publicUrl)
       return null
     } catch (err) {
       console.error('Upload exception:', err)

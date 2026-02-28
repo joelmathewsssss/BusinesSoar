@@ -122,6 +122,11 @@ export default function AddBusinessPage() {
     setImagePublicUrl(null)
     setCategoryId('')
     setLoading(false)
+    
+    // Redirect to main page after 1 second
+    setTimeout(() => {
+      router.push('/')
+    }, 500)
   }
 
   return (

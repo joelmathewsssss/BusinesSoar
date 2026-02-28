@@ -52,7 +52,7 @@ export default function ThemeToggle() {
         />
       </button>
       <span className="text-sm font-medium text-emerald-900 dark:text-emerald-100">
-        {isDark ? '🌙 Dark' : '☀️ Light'}
+        {isDark ? 'Dark' : 'Light'}
       </span>
     </div>
   )

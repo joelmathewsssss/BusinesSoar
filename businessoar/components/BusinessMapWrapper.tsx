@@ -8,6 +8,7 @@ interface Business {
   name: string
   latitude: number
   longitude: number
+  image_url?: string | null
 }
 
 interface BusinessMapWrapperProps {
