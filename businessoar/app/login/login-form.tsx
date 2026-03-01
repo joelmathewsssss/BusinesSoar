@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import Turnstile from 'react-turnstile'
 import { supabase } from '../../lib/supabaseClient'
 
 export default function LoginForm() {
@@ -16,37 +15,11 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [resetTurnstile, setResetTurnstile] = useState(0)
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setLoading(true)
     setError(null)
-
-    if (!turnstileToken) {
-      setError('Please complete the CAPTCHA verification')
-      setLoading(false)
-      return
-    }
-
-    const verifyResponse = await fetch('/api/verify-turnstile', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: turnstileToken }),
-    })
-
-    const verifyData = await verifyResponse.json()
-
-    if (!verifyData.success) {
-      setError('CAPTCHA verification failed. Please try again.')
-      setLoading(false)
-      setResetTurnstile(prev => prev + 1)
-      setTurnstileToken(null)
-      return
-    }
 
     const action =
       mode === 'signin'
@@ -58,8 +31,6 @@ export default function LoginForm() {
     if (error) {
       setError(error.message)
       setLoading(false)
-      setResetTurnstile(prev => prev + 1)
-      setTurnstileToken(null)
       return
     }
 
@@ -129,18 +100,6 @@ export default function LoginForm() {
         </div>
 
         {error && <p className="text-sm text-emerald-700 dark:text-emerald-300">{error}</p>}
-
-        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-          <div className="flex justify-center">
-            <Turnstile
-              key={resetTurnstile}
-              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              onVerify={(token) => setTurnstileToken(token)}
-              theme="light"
-              appearance="always"
-            />
-          </div>
-        )}
 
         <button
           type="submit"

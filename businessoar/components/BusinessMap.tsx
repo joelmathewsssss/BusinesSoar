@@ -35,15 +35,18 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
   const mapRef = useRef<google.maps.Map | null>(null)
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([])
 
+  // Handle map load and initialize markers
   const handleMapLoad = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map
 
+      // Clear existing markers
       markersRef.current.forEach((marker) => {
         marker.map = null
       })
       markersRef.current = []
 
+      // Create advanced markers
       businesses.forEach((business) => {
         const advancedMarker = new (window as any).google.maps.marker.AdvancedMarkerElement({
           map,
@@ -63,14 +66,17 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
     [businesses]
   )
 
+  // Update markers when businesses change
   useEffect(() => {
     if (!mapRef.current) return
 
+    // Clear existing markers
     markersRef.current.forEach((marker) => {
       marker.map = null
     })
     markersRef.current = []
 
+    // Create new markers
     businesses.forEach((business) => {
       const advancedMarker = new (window as any).google.maps.marker.AdvancedMarkerElement({
         map: mapRef.current,
@@ -88,6 +94,7 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
     })
   }, [businesses])
 
+  // Calculate map center based on businesses
   const getMapCenter = useCallback(() => {
     if (businesses.length === 0) return defaultCenter
 
@@ -97,6 +104,7 @@ export default function BusinessMap({ businesses }: BusinessMapProps) {
     return { lat: avgLat, lng: avgLng }
   }, [businesses])
 
+  // Calculate zoom level based on business spread
   const getZoomLevel = useCallback(() => {
     if (businesses.length === 0) return 12
 

@@ -39,6 +39,7 @@ export default function ImageUpload({
         return
       }
 
+      // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
         setPreview(reader.result as string)
@@ -67,6 +68,7 @@ export default function ImageUpload({
         return 'You must be logged in to upload images'
       }
 
+      // Create unique file name with timestamp
       const timestamp = Date.now()
       const fileExtension = file.name.split('.').pop()
       const fileName = `${user.id}-${timestamp}.${fileExtension}`
@@ -84,6 +86,7 @@ export default function ImageUpload({
         return error.message
       }
 
+      // Get public URL - construct it explicitly
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/business-images/businesses/${fileName}`
 

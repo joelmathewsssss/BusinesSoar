@@ -164,6 +164,7 @@ export default function BusinessPage() {
     setTogglingFavorite(true)
 
     if (isFavorited) {
+      // Remove from favorites
       const { error } = await supabase
         .from('favorites')
         .delete()
@@ -176,6 +177,7 @@ export default function BusinessPage() {
         setIsFavorited(false)
       }
     } else {
+      // Add to favorites
       const { error } = await supabase
         .from('favorites')
         .insert({
@@ -202,10 +204,12 @@ export default function BusinessPage() {
         const userId = session?.user?.id ?? null
         setCurrentUserId(userId)
 
+        // Check favorite status if user is logged in
         if (userId) {
           await checkFavoriteStatus(userId, businessId)
         }
 
+        // Fetch the basic business data
         const { data: businessData, error: businessError } = await supabase
           .from('businesses')
           .select('*')
@@ -225,6 +229,7 @@ export default function BusinessPage() {
           return
         }
 
+        // Fetch category if it exists
         let category = null
         if (businessData.category_id) {
           const { data: categoryData, error: catError } = await supabase
@@ -457,6 +462,7 @@ export default function BusinessPage() {
       return
     }
 
+    // Then, delete all deals for this business
     const { error: deleteDealsError } = await supabase
       .from('deals')
       .delete()
@@ -468,6 +474,7 @@ export default function BusinessPage() {
       return
     }
 
+    // Verify deals were actually deleted before proceeding
     const { data: remainingDeals } = await supabase
       .from('deals')
       .select('id')
@@ -479,6 +486,7 @@ export default function BusinessPage() {
       return
     }
 
+    // Finally, delete the business itself
     const { error: deleteError } = await supabase
       .from('businesses')
       .delete()

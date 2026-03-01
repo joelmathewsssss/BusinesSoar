@@ -25,6 +25,7 @@ interface BusinessSectionProps {
 export default function BusinessSection({ businesses, businessesWithLocation }: BusinessSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
+  // Filter businesses by selected category for the map
   const filteredBusinessesForMap = useMemo(() => {
     if (selectedCategory === 'all') {
       return businessesWithLocation

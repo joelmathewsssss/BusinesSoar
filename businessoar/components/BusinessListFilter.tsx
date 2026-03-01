@@ -29,6 +29,7 @@ type BusinessListFilterProps = {
 
 type SortOption = 'rating-high' | 'rating-low' | 'name' | 'distance'
 
+// Calculate distance between two coordinates using Haversine formula (in kilometers)
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371 // Earth's radius in kilometers
   const dLat = ((lat2 - lat1) * Math.PI) / 180
@@ -58,6 +59,7 @@ export default function BusinessListFilter({ businesses, selectedCategory: propS
     onCategoryChange?.(newCategory)
   }
 
+  // Request user's location on mount
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation not supported')
@@ -81,22 +83,26 @@ export default function BusinessListFilter({ businesses, selectedCategory: propS
     )
   }, [])
 
+  // Get unique categories from businesses
   const categories = useMemo(() => {
     const uniqueCategories = new Set(
       businesses
         .map((b) => b.category?.name)
-        .filter((name) => name !== undefined && name !== null)
+        .filter((name): name is string => Boolean(name))
     )
     return Array.from(uniqueCategories).sort()
   }, [businesses])
 
+  // Filter and sort businesses
   const filteredAndSortedBusinesses = useMemo(() => {
     let filtered = businesses
 
+    // Apply category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((b) => b.category?.name === selectedCategory)
     }
 
+    // Add distance calculations if user location is available
     const withDistance: BusinessWithDistance[] = filtered.map((b) => {
       if (userLocation && b.latitude && b.longitude) {
         return {
@@ -107,6 +113,7 @@ export default function BusinessListFilter({ businesses, selectedCategory: propS
       return b
     })
 
+    // Apply sorting
     const sorted = [...withDistance].sort((a, b) => {
       switch (sortBy) {
         case 'rating-high':

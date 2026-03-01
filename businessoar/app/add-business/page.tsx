@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Turnstile from 'react-turnstile'
 import { supabase } from '../../lib/supabaseClient'
 import GoogleAddressInput from '../../components/GoogleAddressInput'
 import GoogleMapsLoader from '../../components/GoogleMapsLoader'
@@ -37,8 +36,6 @@ export default function AddBusinessPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
-  const [resetTurnstile, setResetTurnstile] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -94,30 +91,6 @@ export default function AddBusinessPage() {
     setError(null)
     setSuccess(null)
 
-    if (!turnstileToken) {
-      setError('Please complete the CAPTCHA verification')
-      setLoading(false)
-      return
-    }
-
-    const verifyResponse = await fetch('/api/verify-turnstile', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ token: turnstileToken }),
-    })
-
-    const verifyData = await verifyResponse.json()
-
-    if (!verifyData.success) {
-      setError('CAPTCHA verification failed. Please try again.')
-      setLoading(false)
-      setResetTurnstile(prev => prev + 1)
-      setTurnstileToken(null)
-      return
-    }
-
     const { error } = await supabase
       .from('businesses')
       .insert({
@@ -135,8 +108,6 @@ export default function AddBusinessPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-      setResetTurnstile(prev => prev + 1)
-      setTurnstileToken(null)
       return
     }
 
@@ -152,6 +123,7 @@ export default function AddBusinessPage() {
     setCategoryId('')
     setLoading(false)
     
+    // Redirect to main page after 1 second
     setTimeout(() => {
       router.push('/')
     }, 500)
@@ -258,18 +230,6 @@ export default function AddBusinessPage() {
 
         {error && <p className="text-sm text-emerald-700 dark:text-emerald-300">{error}</p>}
         {success && <p className="text-sm text-emerald-600 dark:text-emerald-400 font-semibold">{success}</p>}
-
-        {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-          <div className="flex justify-center">
-            <Turnstile
-              key={resetTurnstile}
-              sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-              onVerify={(token) => setTurnstileToken(token)}
-              theme="light"
-              appearance="always"
-            />
-          </div>
-        )}
 
         <button
           type="submit"
