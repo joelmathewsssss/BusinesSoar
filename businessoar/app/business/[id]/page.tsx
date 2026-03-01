@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '../../../lib/supabaseClient'
 import ImageUpload from '../../../components/ImageUpload'
+import GoogleAddressInput from '../../../components/GoogleAddressInput'
+import GoogleMapsLoader from '../../../components/GoogleMapsLoader'
 
 interface Business {
   id: string
@@ -40,6 +42,13 @@ interface Deal {
   expires_at?: string | null
 }
 
+interface PlaceData {
+  formattedAddress: string
+  lat: number
+  lng: number
+  placeId: string
+}
+
 export default function BusinessPage() {
   const params = useParams()
   const businessId = params.id as string
@@ -59,6 +68,8 @@ export default function BusinessPage() {
   const [editName, setEditName] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [editAddress, setEditAddress] = useState('')
+  const [editLatitude, setEditLatitude] = useState<number | null>(null)
+  const [editLongitude, setEditLongitude] = useState<number | null>(null)
   const [editImagePublicUrl, setEditImagePublicUrl] = useState<string | null>(null)
   const [savingBusiness, setSavingBusiness] = useState(false)
   const [businessFormError, setBusinessFormError] = useState<string | null>(null)
@@ -255,6 +266,8 @@ export default function BusinessPage() {
         setEditName(businessData.name || '')
         setEditDescription(businessData.description || '')
         setEditAddress(businessData.address || '')
+        setEditLatitude(businessData.latitude ?? null)
+        setEditLongitude(businessData.longitude ?? null)
         setEditImagePublicUrl(businessData.image_url || null)
 
         setAvgRating(calculateAverageRating(reviewsData))
@@ -400,6 +413,8 @@ export default function BusinessPage() {
         name: editName.trim(),
         description: editDescription.trim(),
         address: editAddress.trim(),
+        latitude: editLatitude,
+        longitude: editLongitude,
         image_url: editImagePublicUrl,
       })
       .eq('id', business.id)
@@ -416,6 +431,8 @@ export default function BusinessPage() {
       name: editName.trim(),
       description: editDescription.trim(),
       address: editAddress.trim(),
+      latitude: editLatitude,
+      longitude: editLongitude,
       image_url: editImagePublicUrl,
     })
     setBusinessFormSuccess('Business updated successfully.')
@@ -630,7 +647,7 @@ export default function BusinessPage() {
     )
   }
 
-  const mapLink = business.latitude && business.longitude 
+  const mapLink = business.latitude !== null && business.longitude !== null
     ? `https://www.google.com/maps?q=${business.latitude},${business.longitude}`
     : null
   const canAddReview = Boolean(currentUserId) && currentUserId !== business.user_id
@@ -781,14 +798,21 @@ export default function BusinessPage() {
                     <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="edit-address">
                       Address
                     </label>
-                    <input
-                      id="edit-address"
-                      type="text"
-                      value={editAddress}
-                      onChange={(event) => setEditAddress(event.target.value)}
-                      className="w-full rounded border border-emerald-300 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-50 px-3 py-2"
-                      required
-                    />
+                    <GoogleMapsLoader>
+                      <GoogleAddressInput
+                        value={editAddress}
+                        onChange={(placeData: PlaceData) => {
+                          setEditAddress(placeData.formattedAddress)
+                          setEditLatitude(placeData.lat)
+                          setEditLongitude(placeData.lng)
+                          setBusinessFormError(null)
+                        }}
+                        placeholder="Search for your business address..."
+                      />
+                    </GoogleMapsLoader>
+                    <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                      Select an address suggestion to update map location.
+                    </p>
                   </div>
 
                   <div className="space-y-2">

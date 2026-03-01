@@ -29,9 +29,9 @@ type BusinessListFilterProps = {
 
 type SortOption = 'rating-high' | 'rating-low' | 'name' | 'distance'
 
-// Calculate distance between two coordinates using Haversine formula (in miles)
+// Calculate distance between two coordinates using Haversine formula (in kilometers)
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 3959 // Earth's radius in miles
+  const R = 6371 // Earth's radius in kilometers
   const dLat = ((lat2 - lat1) * Math.PI) / 180
   const dLon = ((lon2 - lon1) * Math.PI) / 180
   const a =
@@ -163,7 +163,7 @@ export default function BusinessListFilter({ businesses, selectedCategory: propS
 
         <div className="flex-1">
           <label className="block text-sm mb-1 text-emerald-800 dark:text-emerald-100" htmlFor="sort-by">
-            Sort by Rating
+            Sort
           </label>
           <select
             id="sort-by"
@@ -228,7 +228,7 @@ export default function BusinessListFilter({ businesses, selectedCategory: propS
                       {b.distance && (
                         <>
                           {' '}
-                          | Distance: <span className="font-semibold">{b.distance.toFixed(1)} mi</span>
+                          | Distance: <span className="font-semibold">{b.distance.toFixed(1)} km</span>
                         </>
                       )}
                     </p>

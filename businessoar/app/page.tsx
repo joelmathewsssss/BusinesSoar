@@ -7,7 +7,7 @@ import ThemeToggle from '../components/ThemeToggle'
 
 export const dynamic = 'force-dynamic'
 
-// TypeScript types (optional but helpful)
+// TypeScript types 
 type Business = {
   id: string
   name: string
@@ -57,7 +57,16 @@ export default async function HomePage() {
     <main className="p-8">
       <div className="flex items-center justify-between mb-6">
         <ThemeToggle />
-        <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">Local Businesses</h1>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/businessoar-logo.png"
+            alt="BusinesSoar logo"
+            width={80}
+            height={80}
+            className="rounded"
+          />
+          <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">BusinesSoar</h1>
+        </div>
         <div className="flex gap-2">
           <Link
             href="/account"
