@@ -54,32 +54,66 @@ export default async function HomePage() {
   ) as (Business & { latitude: number; longitude: number })[]
 
   return (
-    <main className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <ThemeToggle />
-        <div className="flex items-center gap-3">
-          <Image
-            src="/businessoar-logo.png"
-            alt="BusinesSoar logo"
-            width={80}
-            height={80}
-            className="rounded"
-          />
-          <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">BusinesSoar</h1>
+    <main className="p-4 sm:p-8">
+      <div className="mb-6">
+        {/* Mobile Layout */}
+        <div className="flex flex-col gap-4 sm:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Image
+                src="/businessoar-logo.png"
+                alt="BusinesSoar logo"
+                width={40}
+                height={40}
+                className="rounded"
+              />
+              <h1 className="text-xl font-bold text-emerald-900 dark:text-emerald-50">BusinesSoar</h1>
+            </div>
+            <ThemeToggle />
+          </div>
+          <div className="flex gap-2 justify-center">
+            <Link
+              href="/account"
+              className="inline-flex items-center rounded bg-emerald-200 dark:bg-emerald-800 px-3 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-300 dark:hover:bg-emerald-700"
+            >
+              Account
+            </Link>
+            <Link
+              href="/add-business"
+              className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-3 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600"
+            >
+              Add a Business
+            </Link>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/account"
-            className="inline-flex items-center rounded bg-emerald-200 dark:bg-emerald-800 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-300 dark:hover:bg-emerald-700"
-          >
-            Account
-          </Link>
-          <Link
-            href="/add-business"
-            className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600"
-          >
-            Add a Business
-          </Link>
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:flex items-center justify-between">
+          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <Image
+              src="/businessoar-logo.png"
+              alt="BusinesSoar logo"
+              width={80}
+              height={80}
+              className="rounded"
+            />
+            <h1 className="text-3xl font-bold text-emerald-900 dark:text-emerald-50">BusinesSoar</h1>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href="/account"
+              className="inline-flex items-center rounded bg-emerald-200 dark:bg-emerald-800 px-4 py-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100 hover:bg-emerald-300 dark:hover:bg-emerald-700"
+            >
+              Account
+            </Link>
+            <Link
+              href="/add-business"
+              className="inline-flex items-center rounded bg-emerald-600 dark:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white dark:text-emerald-50 hover:bg-emerald-700 dark:hover:bg-emerald-600"
+            >
+              Add a Business
+            </Link>
+          </div>
         </div>
       </div>
 
