@@ -7,7 +7,6 @@ import ThemeToggle from '../components/ThemeToggle'
 
 export const dynamic = 'force-dynamic'
 
-// TypeScript types 
 type Business = {
   id: string
   name: string
@@ -22,7 +21,6 @@ type Business = {
 }
 
 export default async function HomePage() {
-  // Fetch businesses with category name, location, and average rating
   const { data: businesses, error } = await supabase
     .from('businesses')
     .select(`
@@ -41,14 +39,12 @@ export default async function HomePage() {
     return <p>Error loading businesses</p>
   }
 
-  // Calculate average rating per business
   const businessesWithRating: Business[] = (businesses || []).map((b: any) => {
     const ratings = b.reviews?.map((r: any) => r.rating) || []
     const avg_rating = ratings.length > 0 ? ratings.reduce((a: number, c: number) => a + c, 0) / ratings.length : null
     return { ...b, avg_rating }
   })
 
-  // Filter businesses with valid coordinates for the map
   const businessesWithLocation = businessesWithRating.filter(
     (b) => b.latitude !== null && b.longitude !== null
   ) as (Business & { latitude: number; longitude: number })[]

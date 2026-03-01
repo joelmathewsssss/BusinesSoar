@@ -60,7 +60,7 @@ export default function AccountPage() {
         email: session.user.email || '',
       })
 
-      // Fetch businesses created by this user
+
       const { data, error } = await supabase
         .from('businesses')
         .select(`
@@ -123,7 +123,6 @@ export default function AccountPage() {
 
       setReviews(userReviews)
 
-      // Fetch favorites
       const { data: favoritesData, error: favoritesError } = await supabase
         .from('favorites')
         .select('id, business_id')

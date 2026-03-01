@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
         hostname: '**.supabase.co',
       },
     ],
+    unoptimized: process.env.NODE_ENV === 'development',
   },
 };
 
