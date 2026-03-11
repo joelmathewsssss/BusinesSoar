@@ -1,6 +1,4 @@
 # BusinesSoar
-Where business seeds not only sprout, but take off ™
-
 BusinesSoar is an online interactive webapp that allows users to discover, rate, and review local businesses hidden within the community. 
 
 # Features:
