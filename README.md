@@ -11,7 +11,7 @@ BusinesSoar is available on pc, as well as phones!
 Light and Dark Modes
 In depth pages for each business 
 
-#Tech Stack:
+# Tech Stack:
 Uses java-script, HTML, CSS, and PostgreSQL
 
 The front end of the webpage was built with a React framework with Next.js with the assistance of Vercel to host the main webpage. 
