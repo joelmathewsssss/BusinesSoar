@@ -27,3 +27,6 @@ APIs:
 Google Maps Platform → map window + location services + autocomplete
 
 <img width="1299" height="846" alt="image" src="https://github.com/user-attachments/assets/3f158aa4-c6b3-4367-b119-b2c363c5a11f" />
+
+
+AI Disclaimer - ChatGPT was used to learn and debug project structure, VS Code agent to debug code and help make website components
